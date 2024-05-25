@@ -1,7 +1,8 @@
-import { View,Text } from "react-native";
+import { View,Text, ScrollView } from "react-native";
 import * as React from 'react'
 import { Category, Transaction } from "../types";
 import { useSQLiteContext } from "expo-sqlite";
+import TransactionList from '../components/TransactionList';
 export default function Home(){
 
     const [categories,setCategories] = React.useState<Category[]>([]);
@@ -16,13 +17,27 @@ export default function Home(){
     },[db]);
 
     async function getData() {
-        const result = await db.getAllAsync(`SELECT * FROM Transactions`);
-        console.log(result);
+        //? fetching Transactions 
+
+        const transactionResult = await db.getAllAsync<Transaction>(`SELECT * FROM Transactions ORDER BY date DESC;`);
+        setTransactions(transactionResult);
+
+        //? fetching Categories
+
+        const categoriesResult = await db.getAllAsync<Category>(`SELECT * FROM Categories;`);
+        setCategories(categoriesResult);
+    }
+
+    async function deleteTransaction(id:number) {
+        db.withTransactionAsync(async () => {
+            await db.runAsync(`DELETE FROM Transactions WHERE id = ?;`,[id])
+            await getData();
+        })
     }
 
     return (
-        <View>
-            <Text>Home Screen</Text>
-        </View>
+        <ScrollView className=" h-full p-4 ">
+            <TransactionList categories={categories} transactions={transactions} deleteTransaction={deleteTransaction}/>
+        </ScrollView>
     )
 }
